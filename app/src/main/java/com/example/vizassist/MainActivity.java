@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import com.example.vizassist.imagepipeline.ImageActions;
 import com.example.vizassist.utilities.HttpUtilities;
 
+import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 
 import java.io.IOException;
@@ -25,7 +26,7 @@ import java.net.HttpURLConnection;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String UPLOAD_HTTP_URL = "http://34.67.193.198:8080/vizassist/annotate";
+    private static final String UPLOAD_HTTP_URL = "http://173.255.117.247:8080/vizassist/annotate";
 
     private static final int IMAGE_CAPTURE_CODE = 1;
     private static final int SELECT_IMAGE_CODE = 2;
@@ -64,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.action_gallery:
                 mainActivityUIController.updateResultView(getString(R.string.result_placeholder));
-                ImageActions.startCameraActivity(this, SELECT_IMAGE_CODE);
+                ImageActions.startGalleryActivity(this, SELECT_IMAGE_CODE);
                 break;
             default:
                 break;
@@ -102,11 +103,42 @@ public class MainActivity extends AppCompatActivity {
                             R.string.reading_error_message);
                 }
             }
+
+            //
+            if (bitmap != null) {
+                final Bitmap bitmapToUpload = bitmap;   //inner class 要用的必须是final, 否则线程打包出去以后会有安全问题
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        uploadImage(bitmapToUpload);    //上传给Server图片，需要用Post request (post不能刷新，否则表单和文件可能会被上传两次)
+                    }
+                });
+                thread.start();
+            }
         }
+
+
     }
 
     private void uploadImage(Bitmap bitmap) {
-
+        try {
+            HttpURLConnection conn = HttpUtilities.makeHttpPostConnectionToUploadImage(bitmap, UPLOAD_HTTP_URL);    //看看能不能连
+            conn.connect();
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {  //能连的话解析
+                mainActivityUIController.updateResultView(HttpUtilities.parseOCRResponse(conn));
+            } else {
+                mainActivityUIController.showInternetError();   //报错, 弹对话框 (网络错误啥的)
+            }
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+            mainActivityUIController.showInternetError();
+        } catch (IOException e) {
+            e.printStackTrace();
+            mainActivityUIController.showInternetError();
+        } catch (JSONException e) {
+            e.printStackTrace();
+            mainActivityUIController.showInternetError();
+        }
     }
 
 }

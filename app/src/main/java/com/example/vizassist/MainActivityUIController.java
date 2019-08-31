@@ -31,7 +31,7 @@ public class MainActivityUIController {
 
     public MainActivityUIController(Activity activity) {
         this.activity = activity;
-        this.mainThreadHandler = new Handler(Looper.getMainLooper());
+        this.mainThreadHandler = new Handler(Looper.getMainLooper());   //Looper.getMainLooper()即主线程的looper
     }
 
     public void resume() {
@@ -42,6 +42,12 @@ public class MainActivityUIController {
     }
 
     public void updateResultView(final String text) {
+        mainThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                resultView.setText(text);
+            }
+        });
     }
 
     public void updateImageViewWithBitmap(Bitmap bitmap) {
@@ -50,9 +56,26 @@ public class MainActivityUIController {
     }
 
     public void showErrorDialogWithMessage(int messageStringID) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle(R.string.error_dialog_title);
+        builder.setMessage(messageStringID);
+        builder.setPositiveButton(R.string.error_dialog_dismiss_button,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                });
+        builder.show();
     }
 
     public void showInternetError() {
+        mainThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(activity, R.string.internet_error_message, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     public void askForPermission(String permission, Integer requestCode) {

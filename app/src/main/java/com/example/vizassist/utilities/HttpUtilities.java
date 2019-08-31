@@ -2,6 +2,8 @@ package com.example.vizassist.utilities;
 
 import android.graphics.Bitmap;
 
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -29,7 +31,25 @@ public class HttpUtilities {
      */
     public static HttpURLConnection makeHttpPostConnectionToUploadImage(Bitmap bitmap,
                                                                         String urlString) throws IOException {
-        return null;
+        URL url = new URL(urlString);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Connection", "Keep-Alive");    //可有可无，有的话好处是可以保持这个Connection 接通后一直联通，省时间
+
+        //将图片打包成二进制的字符串
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, bos); //90表示0.9的quality；
+        byte[] data = bos.toByteArray();    //将图片存成byte[]
+        ByteArrayEntity byteArrayEntity = new ByteArrayEntity(data, ContentType.IMAGE_JPEG); //打包到ByteArrayEntity
+
+        conn.addRequestProperty("Content-length", byteArrayEntity.getContentLength() + "");
+        conn.addRequestProperty(byteArrayEntity.getContentType().getName(), //告诉server 我们content的type是什么 <type, >
+                byteArrayEntity.getContentType().getValue());
+
+        OutputStream os = conn.getOutputStream();
+        byteArrayEntity.writeTo(conn.getOutputStream());    //这里的"写"其实不是写进文件，而是直接发给server (http)
+        os.close();
+        return conn;
     }
 
     /**
@@ -43,10 +63,31 @@ public class HttpUtilities {
      */
     public static String parseOCRResponse(HttpURLConnection httpURLConnection) throws JSONException,
             IOException {
-        return null;
+        JSONObject resultObject = new JSONObject(readStream(httpURLConnection.getInputStream()));   //此库用来解码Json和打包成Json
+        String result = resultObject.getString("text");
+        return result;
     }
 
-    private static String readStream(InputStream in) {
-        return null;
+    private static String readStream(InputStream in) {  //将input stream转换成字符串, 其实是通用函数
+        BufferedReader reader = null;
+        StringBuilder builder = new StringBuilder();
+        try {
+            reader = new BufferedReader(new InputStreamReader(in));
+            String line = "";
+            while ((line = reader.readLine()) != null) {
+                builder.append(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return builder.toString();
     }
 }
