@@ -40,23 +40,42 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        Log.e("MainActivity", "We are created:");
+        mainActivityUIController = new MainActivityUIController(this);  //set up
     }
 
     @Override
-    public void onResume() {
+    public void onResume() {    //大部分的前台逻辑从这里开始
         super.onResume();
+        mainActivityUIController.resume();
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_capture:
+                mainActivityUIController.updateResultView(getString(R.string.result_placeholder));  //替换之前的View? 更新ResultView
+                if (ContextCompat.checkSelfPermission(MainActivity.this,    //没有权限的话问用户要权限. ContextCompat与状态有关的工具类
+                        Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    mainActivityUIController.askForPermission(
+                            Manifest.permission.CAMERA, CAMERA_PERMISSION_REQUEST);
+                } else {
+                    ImageActions.startCameraActivity(this, IMAGE_CAPTURE_CODE);
+                }
+                break;
+            case R.id.action_gallery:
+                mainActivityUIController.updateResultView(getString(R.string.result_placeholder));
+                ImageActions.startCameraActivity(this, SELECT_IMAGE_CODE);
+                break;
+            default:
+                break;
+        }
         return super.onOptionsItemSelected(item);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);  //xml是抽象的, inflate之后就变成了菜单栏实体，所以用inflate
         return true;
     }
 
@@ -68,9 +87,26 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            Bitmap bitmap = null;
+            if (resultCode == IMAGE_CAPTURE_CODE) {
+                bitmap = (Bitmap) data.getExtras().get("data");
+                mainActivityUIController.updateImageViewWithBitmap(bitmap);
+            } else if (requestCode == SELECT_IMAGE_CODE) {
+                Uri selectedImage = data.getData();
+                try {
+                    bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImage);
+                    mainActivityUIController.updateImageViewWithBitmap(bitmap);
+                } catch (IOException e) {
+                    mainActivityUIController.showErrorDialogWithMessage(
+                            R.string.reading_error_message);
+                }
+            }
+        }
     }
 
     private void uploadImage(Bitmap bitmap) {
 
     }
+
 }

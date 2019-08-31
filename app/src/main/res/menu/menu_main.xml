@@ -14,3 +14,4 @@
         app:showAsAction="ifRoom"
         android:icon="@drawable/ic_photo_album_white_24dp"/>
 </menu>
+<!--showAsAction: 显示成 平铺还是 还是 多的(overflow)的图片都会被扔进[。。。]这个菜单键里面-->

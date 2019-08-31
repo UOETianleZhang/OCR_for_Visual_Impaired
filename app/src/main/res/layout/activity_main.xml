@@ -20,3 +20,7 @@
         android:id="@+id/capturedImage"
         android:layout_above="@id/resultView"/>
 </RelativeLayout>
+<!--android: 表示是android SDK里面定义好的-->
+<!--dp: dynamic pixel-->
+<!--padding: 往里不能放东西-->
+<!--margin: 外面多少不能放东西-->
